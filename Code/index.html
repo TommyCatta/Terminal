@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Login Terminale Marittimo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+</head>
+<body>
+
+    <h2>Login</h2>
+
+    <label for="username">Username</label><br>
+    <input type="text" id="username"><br><br>
+
+    <label for="password">Password</label><br>
+    <input type="password" id="password"><br><br>
+
+    <button onclick="login()">Accedi</button><br><br>
+
+    <p id="messaggio"></p>
+
+    <script>
+        function login()
+        {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+            const passwordHash = CryptoJS.MD5(password).toString();
+
+            fetch("http://localhost:8080/login?username=" + username + "&password=" + passwordHash)
+                .then(function(response)
+                {
+                    return response.json();
+                })
+                .then(function(dati)
+                {
+                    if (dati.ruolo !== "null")
+                    {
+                        document.getElementById("messaggio").innerText = "Login effettuato con successo";
+                    }
+                    else
+                    {
+                        document.getElementById("messaggio").innerText = "Credenziali errate";
+                    }
+                })
+                .catch(function()
+                {
+                    document.getElementById("messaggio").innerText = "Errore di connessione";
+                });
+        }
+    </script>
+
+</body>
+</html>
