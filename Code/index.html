@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <title>Login Terminale Marittimo</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script>
+        sessionStorage.clear();
+    </script>
 </head>
-<body>
+<body onload="controllaLogin()">
 
     <h2>Login</h2>
 
@@ -20,6 +23,53 @@
     <p id="messaggio"></p>
 
     <script>
+        function controllaLogin()
+        {
+            let utente = sessionStorage.getItem("utente");
+        
+            if (utente)
+            {
+                utente = JSON.parse(utente);
+                let ruolo = utente.ruolo;
+        
+                let pagina = "";
+        
+                if (ruolo === "Autista")
+                {
+                    pagina = "homeAutista.html";
+                }
+                else if (ruolo === "Cliente")
+                {
+                    pagina = "homeCliente.html";
+                }
+                else if (ruolo === "Fornitore")
+                {
+                    pagina = "homeFornitore.html";
+                }
+                else if (ruolo === "Admin")
+                {
+                    pagina = "homeAdmin.html";
+                }
+        
+                fetch(pagina, { method: "HEAD" })
+                    .then(function(response)
+                    {
+                        if (response.ok)
+                        {
+                            window.location.href = pagina;
+                        }
+                        else
+                        {
+                            console.warn("Pagina non trovata:", pagina);
+                        }
+                    })
+                    .catch(function()
+                    {
+                        console.warn("Errore nel caricamento della pagina:", pagina);
+                    });
+            }
+        }
+
         function login()
         {
             const username = document.getElementById("username").value;
@@ -35,7 +85,8 @@
                 {
                     if (dati.ruolo !== "null")
                     {
-                        document.getElementById("messaggio").innerText = "Login effettuato con successo";
+                        sessionStorage.setItem("utente", JSON.stringify(dati));
+                        controllaLogin();
                     }
                     else
                     {
