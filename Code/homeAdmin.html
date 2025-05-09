@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Area Admin</title>
+</head>
+<body onload="inizializza()">
+
+    <h2>Benvenuto Admin</h2>
+
+    <button onclick="logout()">Logout</button>
+
+    <h3>Gestione Viaggi</h3>
+
+    <table id="tabellaViaggi" border="1" cellpadding="5" cellspacing="0">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nave</th>
+                <th>Porto Partenza</th>
+                <th>Porto Arrivo</th>
+                <th>Data Partenza</th>
+                <th>Data Arrivo</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <h3>Nuovo Viaggio</h3>
+
+    <form onsubmit="inserisciViaggio(); return false;">
+        <label>Nave:
+            <select id="idNave" required></select>
+        </label><br>
+        <label>Porto Partenza:
+            <select id="idPortoPartenza" required></select>
+        </label><br>
+        <label>Porto Arrivo:
+            <select id="idPortoArrivo" required></select>
+        </label><br>
+        <label>Data Partenza: <input type="date" id="dataPartenza" required></label><br>
+        <label>Data Arrivo: <input type="date" id="dataArrivo" required></label><br><br>
+        <button type="submit">Inserisci Viaggio</button>
+    </form>
+
+    <h3>Elenco Navi</h3>
+    <table id="tabellaNavi" border="1" cellpadding="5" cellspacing="0">
+        <thead>
+            <tr>
+                <th>ID Nave</th>
+                <th>Nome Nave</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <h3>Elenco Porti</h3>
+    <table id="tabellaPorti" border="1" cellpadding="5" cellspacing="0">
+        <thead>
+            <tr>
+                <th>ID Porto</th>
+                <th>Nome Porto</th>
+                <th>Nazione</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <h3>Elenco Fornitori</h3>
+    <table id="tabellaFornitori" border="1" cellpadding="5" cellspacing="0">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Cognome</th>
+                <th>Telefono</th>
+                <th>Indirizzo</th>
+                <th>Email</th>
+                <th>Username</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <h3>Elenco Polizze di Carico</h3>
+    <table id="tabellaPolizze" border="1" cellpadding="5" cellspacing="0">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>ID Viaggio</th>
+                <th>ID Porto Carico</th>
+                <th>ID Porto Destinazione</th>
+                <th>Tipologia</th>
+                <th>Peso (Kg)</th>
+                <th>ID Fornitore</th>
+                <th>Giorni Franchigia</th>
+                <th>Tariffa Giornaliera</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <script>
+        function logout()
+        {
+            sessionStorage.removeItem("utente");
+            window.location.href = "index.html";
+        }
+
+        function inizializza()
+        {
+            let utente = sessionStorage.getItem("utente");
+
+            if (utente == null)
+            {
+                window.location.href = "../index.html";
+                return;
+            }
+
+            utente = JSON.parse(utente);
+
+            if (utente.ruolo !== "Admin")
+            {
+                window.location.href = "../index.html";
+                return;
+            }
+
+            caricaViaggi();
+            caricaNavi();
+            caricaPorti();
+            caricaFornitori();
+            caricaPolizze();
+        }
+
+        function caricaViaggi()
+        {
+            fetch("http://localhost:8080/admin/viaggi")
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(lista) {
+                let tbody = document.querySelector("#tabellaViaggi tbody");
+                tbody.innerHTML = "";
+
+                for (let viaggio of lista)
+                {
+                    let tr = document.createElement("tr");
+
+                    tr.innerHTML =
+                        "<td>" + viaggio.id + "</td>" +
+                        "<td>" + viaggio.nomeNave + "</td>" +
+                        "<td>" + viaggio.portoPartenza + "</td>" +
+                        "<td>" + viaggio.portoArrivo + "</td>" +
+                        "<td>" + viaggio.dataPartenza + "</td>" +
+                        "<td>" + viaggio.dataArrivo + "</td>" +
+                        "<td><button onclick='cancellaViaggio(" + viaggio.id + ")'>Elimina</button></td>";
+
+                    tbody.appendChild(tr);
+                }
+            });
+        }
+
+        function caricaNavi()
+        {
+            fetch("http://localhost:8080/admin/navi")
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(navi) {
+                let select = document.getElementById("idNave");
+                let tbody = document.querySelector("#tabellaNavi tbody");
+                select.innerHTML = "";
+                tbody.innerHTML = "";
+
+                for (let nave of navi)
+                {
+                    let option = document.createElement("option");
+                    option.value = nave.id;
+                    option.textContent = nave.nome;
+                    select.appendChild(option);
+
+                    let tr = document.createElement("tr");
+                    tr.innerHTML = "<td>" + nave.id + "</td><td>" + nave.nome + "</td>";
+                    tbody.appendChild(tr);
+                }
+            });
+        }
+
+        function caricaPorti()
+        {
+            fetch("http://localhost:8080/admin/porti")
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(porti) {
+                let partenza = document.getElementById("idPortoPartenza");
+                let arrivo = document.getElementById("idPortoArrivo");
+                let tbody = document.querySelector("#tabellaPorti tbody");
+
+                partenza.innerHTML = "";
+                arrivo.innerHTML = "";
+                tbody.innerHTML = "";
+
+                for (let porto of porti)
+                {
+                    let option1 = document.createElement("option");
+                    option1.value = porto.id;
+                    option1.textContent = porto.nome + " (" + porto.nazione + ")";
+                    partenza.appendChild(option1);
+
+                    let option2 = document.createElement("option");
+                    option2.value = porto.id;
+                    option2.textContent = porto.nome + " (" + porto.nazione + ")";
+                    arrivo.appendChild(option2);
+
+                    let tr = document.createElement("tr");
+                    tr.innerHTML = "<td>" + porto.id + "</td><td>" + porto.nome + "</td><td>" + porto.nazione + "</td>";
+                    tbody.appendChild(tr);
+                }
+            });
+        }
+
+        function inserisciViaggio()
+        {
+            let viaggio = {
+                idNave: document.getElementById("idNave").value,
+                idPortoPartenza: document.getElementById("idPortoPartenza").value,
+                idPortoArrivo: document.getElementById("idPortoArrivo").value,
+                dataPartenza: document.getElementById("dataPartenza").value,
+                dataArrivo: document.getElementById("dataArrivo").value
+            };
+
+            fetch("http://localhost:8080/admin/viaggi", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(viaggio)
+            })
+            .then(function(response) {
+                if (response.ok) {
+                    caricaViaggi();
+                    alert("Viaggio inserito con successo!");
+                }
+            });
+        }
+
+        function cancellaViaggio(id)
+        {
+            if (!confirm("Sei sicuro di voler eliminare il viaggio " + id + "?")) return;
+
+            fetch("http://localhost:8080/admin/viaggi/" + id, {
+                method: "DELETE"
+            })
+            .then(function(response) {
+                if (response.ok) {
+                    caricaViaggi();
+                    alert("Viaggio eliminato.");
+                }
+            });
+        }
+
+        function caricaFornitori()
+        {
+            fetch("http://localhost:8080/admin/fornitori")
+            .then(response => response.json())
+            .then(lista => {
+                let tbody = document.querySelector("#tabellaFornitori tbody");
+                tbody.innerHTML = "";
+
+                for (let f of lista)
+                {
+                    let tr = document.createElement("tr");
+                    tr.innerHTML =
+                        "<td>" + f.id + "</td>" +
+                        "<td>" + f.nome + "</td>" +
+                        "<td>" + f.cognome + "</td>" +
+                        "<td>" + f.telefono + "</td>" +
+                        "<td>" + f.indirizzo + "</td>" +
+                        "<td>" + f.email + "</td>" +
+                        "<td>" + f.username + "</td>";
+                    tbody.appendChild(tr);
+                }
+            });
+        }
+        function caricaPolizze()
+        {
+            fetch("http://localhost:8080/admin/polizze")
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(polizze) {
+                let tbody = document.querySelector("#tabellaPolizze tbody");
+                tbody.innerHTML = "";
+        
+                for (let polizza of polizze)
+                {
+                    let tr = document.createElement("tr");
+                    tr.innerHTML =
+                        "<td>" + polizza.id + "</td>" +
+                        "<td>" + polizza.idViaggio + " (" + polizza.nomeNave + ")</td>" +
+                        "<td>" + polizza.idPortoCarico + " (" + polizza.nomePortoCarico + ")</td>" +
+                        "<td>" + polizza.idPortoDestinazione + " (" + polizza.nomePortoDestinazione + ")</td>" +
+                        "<td>" + polizza.tipologia + "</td>" +
+                        "<td>" + polizza.pesoKg + "</td>" +
+                        "<td>" + polizza.idFornitore + " (" + polizza.nomeFornitore + ")</td>" +
+                        "<td>" + polizza.giorniFranchigia + "</td>" +
+                        "<td>" + polizza.tariffaGiornaliera + "</td>";
+        
+                    tbody.appendChild(tr);
+                }
+            });
+        }
+        
+    </script>
+
+</body>
+</html>
