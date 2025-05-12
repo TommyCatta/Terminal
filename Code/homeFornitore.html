@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Area Fornitore</title>
+</head>
+<body onload="inizializza()">
+
+    <h2>Benvenuto Fornitore</h2>
+
+    <button onclick="logout()">Logout</button>
+
+    <h3>Le tue Polizze Carico</h3>
+
+    <table id="tabellaPolizze">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Tipologia Merce</th>
+                <th>Peso (kg)</th>
+                <th>Franchigia (gg)</th>
+                <th>Tariffa Giornaliera (€)</th>
+            </tr>
+        </thead>
+        <tbody> 
+        </tbody>
+    </table>
+
+    <h3>Nuova Polizza di Carico</h3>
+
+    <form onsubmit="inserisciPolizza(); return false;">
+        <label>Viaggio:
+            <select id="idViaggio" required></select>
+        </label><br>
+        <label>Tipologia Merce: <input type="text" id="tipologia" required></label><br>
+        <label>Peso (kg): <input type="number" step="0.01" id="peso" required></label><br>
+        <label>Giorni Franchigia: <input type="number" id="giorniFranchigia" required></label><br>
+        <label>Tariffa Giornaliera (€): <input type="number" step="0.01" id="tariffa" required></label><br><br>
+        <button type="submit">Inserisci Polizza</button>
+    </form>
+
+    <script>
+        function logout()
+        {
+            sessionStorage.removeItem("utente");
+            window.location.href = "index.html";
+        }
+
+        function inizializza()
+        {
+            let utente = sessionStorage.getItem("utente");
+
+            if (utente == null)
+            {
+                window.location.href = "../index.html";
+                return;
+            }
+
+            utente = JSON.parse(utente);
+
+            if (utente.ruolo !== "Fornitore")
+            {
+                window.location.href = "../index.html";
+                return;
+            }
+
+            caricaPolizze();
+            caricaViaggiDisponibili();
+        }
+
+        function caricaPolizze()
+        {
+            let utente = JSON.parse(sessionStorage.getItem("utente"));
+
+            fetch("http://localhost:8080/fornitore/polizze?idFornitore=" + utente.id)
+            .then(function(response)
+            {
+                return response.json();
+            })
+            .then(function(polizze)
+            {
+                let tbody = document.querySelector("#tabellaPolizze tbody");
+                tbody.innerHTML = "";
+
+                polizze.forEach(function(p)
+                {
+                    let riga = "<tr>";
+                    riga += "<td>" + p.id + "</td>";
+                    riga += "<td>" + p.tipologia + "</td>";
+                    riga += "<td>" + p.pesoKg + "</td>";
+                    riga += "<td>" + p.giorniFranchigia + "</td>";
+                    riga += "<td>" + p.tariffaGiornaliera + "</td>";
+                    riga += "</tr>";
+                    tbody.innerHTML += riga;
+                });
+            });
+        }
+
+        function caricaViaggiDisponibili()
+        {
+            fetch("http://localhost:8080/viaggi/disponibili")
+            .then(function(response)
+            {
+                return response.json();
+            })
+            .then(function(viaggi)
+            {
+                console.log("Viaggi ricevuti dal server:", viaggi);
+                let select = document.getElementById("idViaggio");
+                select.innerHTML = "";
+        
+                viaggi.forEach(function(v)
+                {
+                    console.log("Oggetto viaggio ricevuto:", v);
+                
+                    let option = document.createElement("option");
+                
+                    try
+                    {
+                        option.value = v.id;
+                        option.text = "Viaggio " + v.id + " - Da " + v.portoPartenza + " a " + v.portoArrivo;
+                        select.appendChild(option);
+                    }
+                    catch (e)
+                    {
+                        console.error("Errore nel creare option per:", v, e);
+                    }
+                });
+                
+            })
+            .catch(function(error)
+            {
+                console.error("Errore durante il caricamento dei viaggi:", error);
+            });
+        }
+
+        function inserisciPolizza()
+        {
+            let utente = JSON.parse(sessionStorage.getItem("utente"));
+
+            let nuovaPolizza =
+            {
+                idViaggio: document.getElementById("idViaggio").value,
+                tipologia: document.getElementById("tipologia").value,
+                pesoKg: document.getElementById("peso").value,
+                idFornitore: utente.id,
+                giorniFranchigia: document.getElementById("giorniFranchigia").value,
+                tariffaGiornaliera: document.getElementById("tariffa").value
+            };
+
+            fetch("http://localhost:8080/fornitore/polizze",
+            {
+                method: "POST",
+                headers:
+                {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(nuovaPolizza)
+            })
+            .then(function()
+            {
+                alert("Polizza inserita correttamente");
+                caricaPolizze();
+            });
+        }
+    </script>
+
+</body>
+</html>
