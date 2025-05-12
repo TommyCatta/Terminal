@@ -85,7 +85,7 @@ public class PolizzaCaricoDAO
                 stmt.setInt(6, polizza.getIdFornitore());
                 stmt.setInt(7, polizza.getGiorniFranchigia());
                 stmt.setBigDecimal(8, polizza.getTariffaGiornaliera());
-                stmt.setBoolean(9, false); // Arrivato impostato a false (non ancora arrivato)
+                stmt.setBoolean(9, false);
     
                 int righeInserite = stmt.executeUpdate();
                 return righeInserite > 0;

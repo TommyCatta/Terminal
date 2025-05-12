@@ -76,7 +76,6 @@ public class ViaggioDAO {
 
             int rowsDeleted = stmt.executeUpdate();
 
-            // Se rowsDeleted > 0, la cancellazione è riuscita
             return rowsDeleted > 0;
 
         } catch (Exception e) {
