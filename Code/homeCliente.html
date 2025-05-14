@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Area Cliente</title>
+    <meta charset="UTF-8">
+    <script>
+        document.addEventListener("DOMContentLoaded", function ()
+        {
+            caricaPolizzeArrivate();
+            caricaBuoniConsegna();
+        });
+
+        function caricaPolizzeArrivate()
+        {
+            fetch("http://localhost:8080/cliente/polizzeArrivate")
+            .then(response =>
+            {
+                if (!response.ok)
+                    throw new Error("Errore HTTP " + response.status);
+                return response.json();
+            })
+            .then(data =>
+            {
+                console.log("Polizze arrivate:", data);
+                let select = document.getElementById("selezionaPolizza");
+                select.innerHTML = "";
+        
+                data.forEach(polizza =>
+                {
+                    let option = document.createElement("option");
+                    option.value = polizza.id;
+                    option.textContent = "ID: " + polizza.id +
+                                         " | Tipologia: " + polizza.tipologia +
+                                         " | Peso (kg): " + polizza.pesoKg +
+                                         " | Arrivato: " + (polizza.arrivato ? "Sì" : "No");
+                    select.appendChild(option);
+                });
+            })
+            .catch(error =>
+            {
+                console.error("Errore nel caricamento polizze:", error);
+            });
+        }
+
+        function caricaBuoniConsegna()
+        {
+            let idCliente = 1;
+
+            fetch("http://localhost:8080/cliente/buoni-consegna?idCliente=" + idCliente)
+                .then(response =>
+                {
+                    if (!response.ok)
+                        throw new Error("Errore HTTP " + response.status);
+                    return response.json();
+                })
+                .then(data =>
+                {
+                    let tbody = document.getElementById("tabellaBuoniBody");
+                    tbody.innerHTML = "";
+
+                    data.forEach(buono =>
+                    {
+                        let tr = document.createElement("tr");
+
+                        let tdId = document.createElement("td");
+                        tdId.textContent = buono.id;
+
+                        let tdPolizza = document.createElement("td");
+                        tdPolizza.textContent = buono.idPolizza;
+
+                        let tdPeso = document.createElement("td");
+
+                        let pesoVal = buono.peso != null ? buono.peso : (buono.pesoRitirabileKg != null ? buono.pesoRitirabileKg : 0);
+                        tdPeso.textContent = pesoVal.toFixed(2) + " kg";
+
+                        let tdData = document.createElement("td");
+                        tdData.textContent = buono.dataEmissione;
+
+                        tr.appendChild(tdId);
+                        tr.appendChild(tdPolizza);
+                        tr.appendChild(tdPeso);
+                        tr.appendChild(tdData);
+
+                        tbody.appendChild(tr);
+                    });
+                })
+                .catch(error =>
+                {
+                    console.error("Errore nel caricamento dei buoni:", error);
+                });
+        }
+
+        function inviaRichiesta()
+        {
+            let idPolizza = document.getElementById("selezionaPolizza").value;
+            let peso = document.getElementById("peso").value;
+            let dataEmissione = document.getElementById("dataEmissione").value;
+
+            let idCliente = 1;
+
+            let params = new URLSearchParams();
+            params.append("idCliente", idCliente);
+            params.append("idPolizza", idPolizza);
+            params.append("peso", peso);
+            params.append("dataEmissione", dataEmissione);
+
+            fetch("http://localhost:8080/cliente/richiedi-buono", {
+                method: "POST",
+                headers:
+                {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: params.toString()
+            })
+            .then(response =>
+            {
+                if(response.ok)
+                    return response.text();
+                else
+                    throw new Error("Errore nella risposta dal server");
+            })
+            .then(data =>
+            {
+                alert("Buono di consegna creato con successo!");
+                caricaBuoniConsegna();
+            })
+            .catch(error =>
+            {
+                alert("Errore nella creazione del buono: " + error.message);
+            });
+        }
+
+        function logout()
+        {
+            window.location.href = "index.html";
+        }
+    </script>
+</head>
+<body>
+    <h1>Benvenuto Cliente</h1>
+
+    <h2>Richiedi un buono di consegna</h2>
+
+    <label for="selezionaPolizza">Polizza arrivata:</label>
+    <select id="selezionaPolizza"></select>
+    <br><br>
+
+    <label for="peso">Peso da ritirare (kg):</label>
+    <input type="number" id="peso" step="0.01" min="0">
+    <br><br>
+
+    <label for="dataEmissione">Data di emissione:</label>
+    <input type="date" id="dataEmissione">
+    <br><br>
+
+    <button onclick="inviaRichiesta()">Invia richiesta</button>
+
+    <h2>Buoni di consegna emessi</h2>
+
+    <table border="1" id="tabellaBuoni">
+        <thead>
+            <tr>
+                <th>Buono #</th>
+                <th>Polizza ID</th>
+                <th>Peso (kg)</th>
+                <th>Data</th>
+            </tr>
+        </thead>
+        <tbody id="tabellaBuoniBody">
+        </tbody>
+    </table>
+
+    <br><br>
+    <button onclick="logout()">Logout</button>
+</body>
+</html>
