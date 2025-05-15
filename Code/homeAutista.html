@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8" />
+    <title>Area Autista - Terminale Marittimo</title>
+    <style>
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background: #f4f4f4; }
+    </style>
+</head>
+<body onload="inizializza()">
+
+    <h2>Benvenuto Autista</h2>
+    <button onclick="logout()">Logout</button>
+
+    <h3>Registra nuova consegna</h3>
+    <form onsubmit="registraConsegna(); return false;">
+        <label>Camion:
+            <select id="targaCamion" required></select>
+        </label><br><br>
+
+        <label>Buono di Consegna:
+            <select id="idBuono" required onchange="aggiornaPesoRitirabile()"></select>
+        </label><br><br>
+
+        <label>Peso Ritirabile (kg):
+            <span id="pesoRitirabile">-</span>
+        </label><br><br>
+
+        <label>Data Consegna:
+            <input type="date" id="dataConsegna" required />
+        </label><br><br>
+
+        <button type="submit">Registra Consegna</button>
+    </form>
+
+    <!-- NUOVA TABELLA CONSEGNE -->
+    <h3>Le tue Consegne</h3>
+    <table id="tabellaConsegne">
+        <thead>
+            <tr>
+                <th>Buono #</th>
+                <th>Camion (Targa)</th>
+                <th>Peso Consegnato (kg)</th>
+                <th>Data Consegna</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- righe dinamiche -->
+        </tbody>
+    </table>
+
+    <script>
+        function logout() {
+            sessionStorage.removeItem("utente");
+            window.location.href = "index.html";
+        }
+
+        function inizializza() {
+            let utente = sessionStorage.getItem("utente");
+            if (!utente) return window.location.href = "../index.html";
+            utente = JSON.parse(utente);
+            if (utente.ruolo !== "Autista") return window.location.href = "../index.html";
+
+            caricaCamion();
+            caricaBuoniConsegna(utente.id);
+            caricaConsegne(utente.id);
+        }
+
+        function caricaCamion() {
+            fetch("http://localhost:8080/autista/camion")
+            .then(r => r.json())
+            .then(arr => {
+                let sel = document.getElementById("targaCamion");
+                sel.innerHTML = "";
+                arr.forEach(c => {
+                    let o = document.createElement("option");
+                    o.value = c.targa; 
+                    o.text = `${c.targa} – ${c.marca} ${c.modello}`;
+                    sel.appendChild(o);
+                });
+            });
+        }
+
+        function caricaBuoniConsegna(idAutista) {
+            fetch(`http://localhost:8080/autista/buoni?idAutista=${idAutista}`)
+            .then(r => r.json())
+            .then(arr => {
+                let sel = document.getElementById("idBuono");
+                sel.innerHTML = "";
+                arr.forEach(b => {
+                    let o = document.createElement("option");
+                    o.value = b.id;
+                    o.text = `Buono #${b.id} – Cliente: ${b.idCliente}`;
+                    o.dataset.pesoRitirabile = b.pesoRitirabileKg;
+                    sel.appendChild(o);
+                });
+                aggiornaPesoRitirabile();
+            });
+        }
+
+        function aggiornaPesoRitirabile() {
+            let sel = document.getElementById("idBuono"),
+                span = document.getElementById("pesoRitirabile");
+            if (sel.selectedIndex >= 0) {
+                span.textContent = sel.options[sel.selectedIndex].dataset.pesoRitirabile;
+            } else span.textContent = "-";
+        }
+
+        function registraConsegna() {
+            let utente = JSON.parse(sessionStorage.getItem("utente"));
+            let consegna = {
+                idBuono: parseInt(document.getElementById("idBuono").value),
+                targa: document.getElementById("targaCamion").value,
+                idAutista: utente.id,
+                pesoConsegnatoKg: parseFloat(document.getElementById("pesoRitirabile").textContent),
+                dataConsegna: document.getElementById("dataConsegna").value
+            };
+            fetch("http://localhost:8080/autista/consegna", {
+                method: "POST",
+                headers: {"Content-Type":"application/json"},
+                body: JSON.stringify(consegna)
+            })
+            .then(resp => {
+                if (resp.ok) {
+                    alert("Consegna registrata!");
+                    caricaConsegne(utente.id);
+                } else {
+                    alert("Errore durante la registrazione");
+                }
+            });
+        }
+
+        // NUOVA
+        function caricaConsegne(idAutista) {
+            fetch(`http://localhost:8080/autista/consegne?idAutista=${idAutista}`)
+            .then(r => r.json())
+            .then(arr => {
+                let tbody = document.querySelector("#tabellaConsegne tbody");
+                tbody.innerHTML = "";
+                arr.forEach(c => {
+                    let tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td>${c.idBuono}</td>
+                        <td>${c.targa}</td>
+                        <td>${c.pesoConsegnatoKg.toFixed(2)}</td>
+                        <td>${c.dataConsegna}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            });
+        }
+    </script>
+
+</body>
+</html>
